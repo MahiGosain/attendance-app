@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/axios';
+import api, { BASE_URL } from '../api/axios';
 import { ClipboardList, BookOpen, LogOut, CheckCircle, XCircle, Download, Upload, FileText, Calendar, User as UserIcon, Trash2, MessageCircle, Send, Award, MessageSquare, PieChart as PieChartIcon, BarChart as BarChartIcon, Lock, Unlock, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
@@ -849,7 +849,7 @@ const Dashboard = () => {
                       {assignment.file_path && (
                         <div className="mb-6">
                           <a 
-                            href={`http://localhost:5000${assignment.file_path}`} 
+                            href={`${BASE_URL}${assignment.file_path}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 bg-blue-900/30 hover:bg-blue-600/40 text-blue-400 px-4 py-2 rounded-lg border border-blue-500/20 transition-all text-sm font-semibold"
@@ -1043,7 +1043,7 @@ const Dashboard = () => {
                         <div className="space-y-3">
                           {sub.file_path && (
                             <a 
-                              href={`http://localhost:5000${sub.file_path}`} 
+                              href={`${BASE_URL}${sub.file_path}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 text-xs font-bold bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-500/20 transition-all w-full"
