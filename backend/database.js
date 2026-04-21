@@ -1,128 +1,78 @@
-const Database = require('better-sqlite3');
-const db = new Database('attendance.db');
+const { Pool } = require('pg');
+require('dotenv').config();
 
-// Create tables
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    role TEXT CHECK(role IN ('teacher', 'student')) NOT NULL
-  );
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase/Render PostgreSQL
+  }
+});
 
-  CREATE TABLE IF NOT EXISTS attendance (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER NOT NULL,
-    session_id INTEGER,
-    date TEXT NOT NULL,
-    status TEXT CHECK(status IN ('present', 'absent')) NOT NULL,
-    FOREIGN KEY (student_id) REFERENCES users(id),
-    FOREIGN KEY (session_id) REFERENCES sessions(id)
-  );
+const initDb = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT CHECK(role IN ('teacher', 'student')) NOT NULL,
+        enrollment_number TEXT,
+        branch TEXT,
+        semester TEXT
+      );
 
-  CREATE TABLE IF NOT EXISTS sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    teacher_id INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    date TEXT NOT NULL,
-    is_open INTEGER DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (teacher_id) REFERENCES users(id)
-  );
+      CREATE TABLE IF NOT EXISTS sessions (
+        id SERIAL PRIMARY KEY,
+        teacher_id INTEGER NOT NULL REFERENCES users(id),
+        title TEXT NOT NULL,
+        date TEXT NOT NULL,
+        is_open INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
 
-  CREATE TABLE IF NOT EXISTS assignments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    teacher_id INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT,
-    due_date TEXT NOT NULL,
-    file_path TEXT,
-    FOREIGN KEY (teacher_id) REFERENCES users(id)
-  );
+      CREATE TABLE IF NOT EXISTS attendance (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER NOT NULL REFERENCES users(id),
+        session_id INTEGER REFERENCES sessions(id),
+        date TEXT NOT NULL,
+        status TEXT CHECK(status IN ('present', 'absent')) NOT NULL
+      );
 
-  CREATE TABLE IF NOT EXISTS submissions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    assignment_id INTEGER NOT NULL,
-    student_id INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    file_path TEXT,
-    grade TEXT,
-    feedback TEXT,
-    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (assignment_id) REFERENCES assignments(id),
-    FOREIGN KEY (student_id) REFERENCES users(id)
-  );
+      CREATE TABLE IF NOT EXISTS assignments (
+        id SERIAL PRIMARY KEY,
+        teacher_id INTEGER NOT NULL REFERENCES users(id),
+        title TEXT NOT NULL,
+        description TEXT,
+        due_date TEXT NOT NULL,
+        file_path TEXT
+      );
 
-  CREATE TABLE IF NOT EXISTS doubts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    parent_id INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (parent_id) REFERENCES doubts(id)
-  );
-`);
+      CREATE TABLE IF NOT EXISTS submissions (
+        id SERIAL PRIMARY KEY,
+        assignment_id INTEGER NOT NULL REFERENCES assignments(id),
+        student_id INTEGER NOT NULL REFERENCES users(id),
+        content TEXT NOT NULL,
+        file_path TEXT,
+        grade TEXT,
+        feedback TEXT,
+        submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
 
-// Check if file_path column exists in assignments, if not add it
-try {
-  db.exec("ALTER TABLE assignments ADD COLUMN file_path TEXT");
-} catch (e) {
-  // Column already exists
-}
+      CREATE TABLE IF NOT EXISTS doubts (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        content TEXT NOT NULL,
+        parent_id INTEGER REFERENCES doubts(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log("Database initialized successfully");
+  } catch (err) {
+    console.error("Error initializing database:", err);
+  }
+};
 
-// Check if file_path column exists in submissions, if not add it
-try {
-  db.exec("ALTER TABLE submissions ADD COLUMN file_path TEXT");
-} catch (e) {
-  // Column already exists
-}
+initDb();
 
-// Check if grade column exists in submissions, if not add it
-try {
-  db.exec("ALTER TABLE submissions ADD COLUMN grade TEXT");
-} catch (e) {
-  // Column already exists
-}
-
-// Check if feedback column exists in submissions, if not add it
-try {
-  db.exec("ALTER TABLE submissions ADD COLUMN feedback TEXT");
-} catch (e) {
-  // Column already exists
-}
-
-// Check if session_id column exists in attendance, if not add it
-try {
-  db.exec("ALTER TABLE attendance ADD COLUMN session_id INTEGER");
-} catch (e) {
-  // Column already exists
-}
-
-// Check if is_open column exists in sessions, if not add it
-try {
-  db.exec("ALTER TABLE sessions ADD COLUMN is_open INTEGER DEFAULT 1");
-} catch (e) {
-  // Column already exists
-}
-
-// Check if parent_id column exists in doubts, if not add it
-try {
-  db.exec("ALTER TABLE doubts ADD COLUMN parent_id INTEGER");
-} catch (e) {
-  // Column already exists
-}
-
-// Add profile columns to users table
-try {
-  db.exec("ALTER TABLE users ADD COLUMN enrollment_number TEXT");
-} catch (e) {}
-try {
-  db.exec("ALTER TABLE users ADD COLUMN branch TEXT");
-} catch (e) {}
-try {
-  db.exec("ALTER TABLE users ADD COLUMN semester TEXT");
-} catch (e) {}
-
-module.exports = db;
+module.exports = pool;
