@@ -1,10 +1,15 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+if (!process.env.DATABASE_URL) {
+  console.error('ERROR: DATABASE_URL is missing in .env file!');
+  console.error('Please add DATABASE_URL=postgresql://username:password@host:port/database to your .env');
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false // Required for Supabase/Render PostgreSQL
+  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('localhost') ? false : {
+    rejectUnauthorized: false 
   }
 });
 
