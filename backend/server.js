@@ -5,14 +5,20 @@ const bcrypt = require('bcryptjs');
 const db = require('./database');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const stringSimilarity = require('string-similarity');
 require('dotenv').config();
 
-const app = express();
 const PORT = process.env.PORT || 5000;
 const SECRET_KEY = process.env.JWT_SECRET || 'your_secret_key';
 
-// CORS Configuration
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads');
+ }
+
+ const app = express();
+
+ // CORS Configuration
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
