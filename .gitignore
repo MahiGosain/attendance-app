@@ -1,0 +1,6 @@
+node_modules/
+backend/attendance.db
+backend/uploads/
+.env
+dist/
+.DS_Store
