@@ -1,9 +1,14 @@
 import axios from 'axios';
 
-// Use a relative URL so it works on any domain (local or deployed)
-const API_URL = '/api';
+const rawApiUrl = import.meta.env.VITE_API_URL?.trim();
 
-export const BASE_URL = window.location.origin;
+const API_URL = rawApiUrl
+  ? rawApiUrl.replace(/\/+$/, '')
+  : '/api';
+
+export const BASE_URL = API_URL.startsWith('http')
+  ? new URL(API_URL).origin
+  : window.location.origin;
 
 const api = axios.create({
   baseURL: API_URL,
