@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-export const BASE_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
+const API_URL = 'https://attendance-app-3-pf5k.onrender.com/api';
+
+export const BASE_URL = API_URL.replace('/api', '');
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: API_URL,
 });
 
 api.interceptors.request.use((config) => {
