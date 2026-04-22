@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api, { BASE_URL } from '../api/axios';
-import { ClipboardList, BookOpen, LogOut, CheckCircle, XCircle, Download, Upload, FileText, Calendar, User as UserIcon, Trash2, MessageCircle, Send, Award, MessageSquare, PieChart as PieChartIcon, BarChart as BarChartIcon, Lock, Unlock, ShieldAlert, AlertTriangle } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { ClipboardList, BookOpen, LogOut, CheckCircle, XCircle, Download, Upload, FileText, Calendar, User as UserIcon, Trash2, MessageCircle, Send, Award, MessageSquare, BarChart as BarChartIcon, Lock, Unlock, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();

@@ -26,6 +26,17 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Request logger
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Multer Storage Configuration
@@ -503,6 +514,24 @@ app.delete('/api/doubts/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// --- STATIC FILES ---
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Catch-all route to serve the frontend index.html for SPA
+app.get('*', (req, res) => {
+  // If it's an API request, don't serve index.html
+  if (req.url.startsWith('/api')) {
+    return res.status(404).json({ message: 'API route not found' });
+  }
+  
+  const indexPath = path.resolve(__dirname, '../frontend/dist/index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend build not found');
   }
 });
 

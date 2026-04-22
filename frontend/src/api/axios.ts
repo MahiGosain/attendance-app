@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-const API_URL = 'https://attendance-app-3-pf5k.onrender.com/api';
+// Use a relative URL so it works on any domain (local or deployed)
+const API_URL = '/api';
 
-export const BASE_URL = API_URL.replace('/api', '');
+export const BASE_URL = window.location.origin;
 
 const api = axios.create({
   baseURL: API_URL,
