@@ -50,7 +50,10 @@ const initDb = async () => {
         title TEXT NOT NULL,
         description TEXT,
         due_date TEXT NOT NULL,
-        file_path TEXT
+        file_path TEXT,
+        file_name TEXT,
+        file_mime TEXT,
+        file_data BYTEA
       );
 
       CREATE TABLE IF NOT EXISTS submissions (
@@ -59,6 +62,9 @@ const initDb = async () => {
         student_id INTEGER NOT NULL REFERENCES users(id),
         content TEXT NOT NULL,
         file_path TEXT,
+        file_name TEXT,
+        file_mime TEXT,
+        file_data BYTEA,
         grade TEXT,
         feedback TEXT,
         submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -71,6 +77,18 @@ const initDb = async () => {
         parent_id INTEGER REFERENCES doubts(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    await pool.query(`
+      ALTER TABLE assignments
+      ADD COLUMN IF NOT EXISTS file_name TEXT,
+      ADD COLUMN IF NOT EXISTS file_mime TEXT,
+      ADD COLUMN IF NOT EXISTS file_data BYTEA;
+
+      ALTER TABLE submissions
+      ADD COLUMN IF NOT EXISTS file_name TEXT,
+      ADD COLUMN IF NOT EXISTS file_mime TEXT,
+      ADD COLUMN IF NOT EXISTS file_data BYTEA;
     `);
     console.log("Database initialized successfully");
   } catch (err) {

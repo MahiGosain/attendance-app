@@ -31,6 +31,9 @@ const Dashboard = () => {
   const [profile, setProfile] = useState({ enrollment_number: '', branch: '', semester: '' });
   const [savingProfile, setSavingProfile] = useState(false);
 
+  const getAssignmentFileUrl = (assignmentId: number) => `${BASE_URL}/files/assignments/${assignmentId}`;
+  const getSubmissionFileUrl = (submissionId: number) => `${BASE_URL}/files/submissions/${submissionId}`;
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -846,10 +849,10 @@ const Dashboard = () => {
                       <h3 className="text-xl font-bold text-gray-100 mb-2 group-hover:text-blue-300 transition-colors pr-20">{assignment.title}</h3>
                       <p className="text-gray-400 text-sm mb-4 flex-grow leading-relaxed">{assignment.description}</p>
                       
-                      {assignment.file_path && (
+                      {(assignment.file_name || assignment.file_path) && (
                         <div className="mb-6">
                           <a 
-                            href={`${BASE_URL}${assignment.file_path}`} 
+                            href={getAssignmentFileUrl(assignment.id)} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 bg-blue-900/30 hover:bg-blue-600/40 text-blue-400 px-4 py-2 rounded-lg border border-blue-500/20 transition-all text-sm font-semibold"
@@ -877,9 +880,9 @@ const Dashboard = () => {
                                  <div className="bg-gray-900/50 p-3 rounded-lg text-xs text-gray-400 border border-gray-700/50 italic">
                                    "{submission.content || 'No text content provided'}"
                                  </div>
-                                 {submission.file_path && (
+                                 {(submission.file_name || submission.file_path) && (
                                    <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                                     <FileText size={12} /> {submission.file_path.split('-').slice(1).join('-')}
+                                     <FileText size={12} /> {submission.file_name || submission.file_path.split('-').slice(1).join('-')}
                                    </div>
                                  )}
                                  {(submission.grade || submission.feedback) && (
@@ -1041,9 +1044,9 @@ const Dashboard = () => {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-3">
-                          {sub.file_path && (
+                          {(sub.file_name || sub.file_path) && (
                             <a 
-                              href={`${BASE_URL}${sub.file_path}`} 
+                              href={getSubmissionFileUrl(sub.id)} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 text-xs font-bold bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-500/20 transition-all w-full"

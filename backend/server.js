@@ -38,19 +38,37 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', express.static(uploadsDir, { fallthrough: false }));
 
 // Multer Storage Configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
+const storage = multer.memoryStorage();
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024,
   },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
 });
 
-const upload = multer({ storage: storage });
+const sendStoredFile = (res, record, fallbackLabel) => {
+  if (record?.file_data) {
+    res.setHeader('Content-Type', record.file_mime || 'application/octet-stream');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${path.basename(record.file_name || fallbackLabel)}"`
+    );
+    return res.send(record.file_data);
+  }
+
+  if (record?.file_path) {
+    const fallbackFilePath = path.join(uploadsDir, path.basename(record.file_path));
+    if (fs.existsSync(fallbackFilePath)) {
+      return res.sendFile(fallbackFilePath);
+    }
+  }
+
+  return res.status(404).json({ message: 'File not found' });
+};
 
 // Auth Middlewares
 const authenticateToken = (req, res, next) => {
@@ -292,11 +310,22 @@ app.get('/api/attendance/teacher', authenticateToken, async (req, res) => {
 app.post('/api/assignments', authenticateToken, upload.single('file'), async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ message: 'Only teachers can post assignments' });
   const { title, description, due_date } = req.body;
-  const file_path = req.file ? `/uploads/${req.file.filename}` : null;
+  const filePath = req.file ? `/uploads/${Date.now()}-${req.file.originalname}` : null;
   try {
     await pool.query(
-      'INSERT INTO assignments (teacher_id, title, description, due_date, file_path) VALUES ($1, $2, $3, $4, $5)',
-      [req.user.id, title, description, due_date, file_path]
+      `INSERT INTO assignments (
+        teacher_id, title, description, due_date, file_path, file_name, file_mime, file_data
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        req.user.id,
+        title,
+        description,
+        due_date,
+        filePath,
+        req.file?.originalname || null,
+        req.file?.mimetype || null,
+        req.file?.buffer || null,
+      ]
     );
     res.status(201).json({ message: 'Assignment created' });
   } catch (error) {
@@ -342,7 +371,7 @@ app.get('/api/assignments', authenticateToken, async (req, res) => {
 app.post('/api/submissions', authenticateToken, upload.single('file'), async (req, res) => {
   if (req.user.role !== 'student') return res.status(403).json({ message: 'Only students can submit assignments' });
   const { assignment_id, content } = req.body;
-  const file_path = req.file ? `/uploads/${req.file.filename}` : null;
+  const filePath = req.file ? `/uploads/${Date.now()}-${req.file.originalname}` : null;
   
   try {
     // Check if already submitted
@@ -350,13 +379,59 @@ app.post('/api/submissions', authenticateToken, upload.single('file'), async (re
     if (existingResult.rows.length > 0) return res.status(400).json({ message: 'You have already submitted this assignment' });
 
     await pool.query(
-      'INSERT INTO submissions (assignment_id, student_id, content, file_path) VALUES ($1, $2, $3, $4)',
-      [assignment_id, req.user.id, content, file_path]
+      `INSERT INTO submissions (
+        assignment_id, student_id, content, file_path, file_name, file_mime, file_data
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        assignment_id,
+        req.user.id,
+        content,
+        filePath,
+        req.file?.originalname || null,
+        req.file?.mimetype || null,
+        req.file?.buffer || null,
+      ]
     );
     res.status(201).json({ message: 'Submission successful' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/files/assignments/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT file_name, file_mime, file_data, file_path FROM assignments WHERE id = $1',
+      [req.params.id]
+    );
+    const assignment = result.rows[0];
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    return sendStoredFile(res, assignment, 'assignment-file');
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/files/submissions/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT file_name, file_mime, file_data, file_path FROM submissions WHERE id = $1',
+      [req.params.id]
+    );
+    const submission = result.rows[0];
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found' });
+    }
+
+    return sendStoredFile(res, submission, 'submission-file');
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 });
 
