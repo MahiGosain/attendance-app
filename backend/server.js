@@ -334,6 +334,37 @@ app.post('/api/assignments', authenticateToken, upload.single('file'), async (re
   }
 });
 
+app.patch('/api/assignments/:id/file', authenticateToken, upload.single('file'), async (req, res) => {
+  if (req.user.role !== 'teacher') {
+    return res.status(403).json({ message: 'Only teachers can replace assignment files' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ message: 'Please upload a file' });
+  }
+
+  const { id } = req.params;
+  const filePath = `/uploads/${Date.now()}-${req.file.originalname}`;
+
+  try {
+    const result = await pool.query(
+      `UPDATE assignments
+       SET file_path = $1, file_name = $2, file_mime = $3, file_data = $4
+       WHERE id = $5 AND teacher_id = $6`,
+      [filePath, req.file.originalname, req.file.mimetype, req.file.buffer, id, req.user.id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Assignment not found or unauthorized' });
+    }
+
+    return res.json({ message: 'Assignment file replaced successfully' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // Delete Assignment (Teacher only)
 app.delete('/api/assignments/:id', authenticateToken, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ message: 'Only teachers can delete assignments' });

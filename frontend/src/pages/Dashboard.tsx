@@ -20,6 +20,8 @@ const Dashboard = () => {
   const [studentSubmissions, setStudentSubmissions] = useState<any[]>([]);
   const [newAssignment, setNewAssignment] = useState({ title: '', description: '', due_date: '' });
   const [assignmentFile, setAssignmentFile] = useState<File | null>(null);
+  const [replacementFiles, setReplacementFiles] = useState<{ [key: number]: File | null }>({});
+  const [replacingAssignmentId, setReplacingAssignmentId] = useState<number | null>(null);
   const [submissionFile, setSubmissionFile] = useState<{ [key: number]: File | null }>({});
   const [submissionContent, setSubmissionContent] = useState<{ [key: number]: string }>({});
   const [grading, setGrading] = useState<{ [key: number]: { grade: string, feedback: string } }>({});
@@ -284,6 +286,28 @@ const Dashboard = () => {
       fetchData();
     } catch (err) {
       alert('Failed to delete assignment');
+    }
+  };
+
+  const replaceAssignmentFile = async (assignmentId: number) => {
+    const file = replacementFiles[assignmentId];
+    if (!file) return alert('Please choose a file first');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setReplacingAssignmentId(assignmentId);
+      await api.patch(`/assignments/${assignmentId}/file`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setReplacementFiles((current) => ({ ...current, [assignmentId]: null }));
+      alert('Assignment file replaced successfully');
+      fetchData();
+    } catch (err) {
+      alert('Failed to replace assignment file');
+    } finally {
+      setReplacingAssignmentId(null);
     }
   };
 
@@ -865,6 +889,30 @@ const Dashboard = () => {
                           This older file is no longer available on the server. Please upload it again.
                         </div>
                       ) : null}
+
+                      {user?.role === 'teacher' && (
+                        <div className="mb-6 flex flex-col gap-2 rounded-xl border border-gray-600/50 bg-gray-900/30 p-3">
+                          <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">
+                            {assignment.file_available ? 'Replace assignment file' : 'Upload replacement file'}
+                          </label>
+                          <div className="flex flex-col md:flex-row gap-2">
+                            <input
+                              type="file"
+                              className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-gray-700 file:text-gray-300"
+                              onChange={(e) => setReplacementFiles((current) => ({ ...current, [assignment.id]: e.target.files ? e.target.files[0] : null }))}
+                              accept=".pdf,.doc,.docx"
+                            />
+                            <button
+                              onClick={() => replaceAssignmentFile(assignment.id)}
+                              disabled={replacingAssignmentId === assignment.id}
+                              className="bg-amber-600 hover:bg-amber-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                            >
+                              <Upload size={12} />
+                              {replacingAssignmentId === assignment.id ? 'Replacing...' : 'Replace File'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pt-4 border-t border-gray-600/50 mt-auto">
                         <div className="flex items-center gap-2">
