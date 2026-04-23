@@ -355,7 +355,11 @@ app.get('/api/assignments', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT a.*, u.name as teacher_name,
-      (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id) as submission_count
+      (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id) as submission_count,
+      CASE
+        WHEN a.file_data IS NOT NULL THEN TRUE
+        ELSE FALSE
+      END as file_available
       FROM assignments a 
       JOIN users u ON a.teacher_id = u.id 
       ORDER BY a.due_date ASC
@@ -439,7 +443,15 @@ app.get('/files/submissions/:id', async (req, res) => {
 app.get('/api/submissions/student', authenticateToken, async (req, res) => {
   if (req.user.role !== 'student') return res.status(403).json({ message: 'Only students can view their submissions' });
   try {
-    const result = await pool.query('SELECT * FROM submissions WHERE student_id = $1', [req.user.id]);
+    const result = await pool.query(`
+      SELECT *,
+      CASE
+        WHEN file_data IS NOT NULL THEN TRUE
+        ELSE FALSE
+      END as file_available
+      FROM submissions
+      WHERE student_id = $1
+    `, [req.user.id]);
     res.json(result.rows);
   } catch (error) {
     console.error(error);
@@ -453,7 +465,11 @@ app.get('/api/submissions/:assignmentId', authenticateToken, async (req, res) =>
   const { assignmentId } = req.params;
   try {
     const result = await pool.query(`
-      SELECT s.*, u.name as student_name, u.enrollment_number, u.branch, u.semester 
+      SELECT s.*, u.name as student_name, u.enrollment_number, u.branch, u.semester,
+      CASE
+        WHEN s.file_data IS NOT NULL THEN TRUE
+        ELSE FALSE
+      END as file_available
       FROM submissions s 
       JOIN users u ON s.student_id = u.id 
       WHERE s.assignment_id = $1

@@ -849,7 +849,7 @@ const Dashboard = () => {
                       <h3 className="text-xl font-bold text-gray-100 mb-2 group-hover:text-blue-300 transition-colors pr-20">{assignment.title}</h3>
                       <p className="text-gray-400 text-sm mb-4 flex-grow leading-relaxed">{assignment.description}</p>
                       
-                      {(assignment.file_name || assignment.file_path) && (
+                      {assignment.file_available ? (
                         <div className="mb-6">
                           <a 
                             href={getAssignmentFileUrl(assignment.id)} 
@@ -860,7 +860,11 @@ const Dashboard = () => {
                             <FileText size={16} /> View Assignment File
                           </a>
                         </div>
-                      )}
+                      ) : (assignment.file_name || assignment.file_path) ? (
+                        <div className="mb-6 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                          This older file is no longer available on the server. Please upload it again.
+                        </div>
+                      ) : null}
                       
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pt-4 border-t border-gray-600/50 mt-auto">
                         <div className="flex items-center gap-2">
@@ -883,6 +887,11 @@ const Dashboard = () => {
                                  {(submission.file_name || submission.file_path) && (
                                    <div className="flex items-center gap-2 text-[10px] text-gray-500">
                                      <FileText size={12} /> {submission.file_name || submission.file_path.split('-').slice(1).join('-')}
+                                   </div>
+                                 )}
+                                 {!submission.file_available && (submission.file_name || submission.file_path) && (
+                                   <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[10px] text-amber-300">
+                                     Attached file is no longer available on the server.
                                    </div>
                                  )}
                                  {(submission.grade || submission.feedback) && (
@@ -1044,7 +1053,7 @@ const Dashboard = () => {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-3">
-                          {(sub.file_name || sub.file_path) && (
+                          {sub.file_available ? (
                             <a 
                               href={getSubmissionFileUrl(sub.id)} 
                               target="_blank" 
@@ -1053,7 +1062,11 @@ const Dashboard = () => {
                             >
                               <Download size={12} /> Download Student's File
                             </a>
-                          )}
+                          ) : (sub.file_name || sub.file_path) ? (
+                            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[10px] text-amber-300">
+                              Student file is unavailable. Ask for a re-upload if needed.
+                            </div>
+                          ) : null}
                           <div className="flex items-center gap-2 text-gray-400 text-xs">
                             <Calendar size={12} /> Submitted: {formatDate(sub.submitted_at)}
                           </div>
